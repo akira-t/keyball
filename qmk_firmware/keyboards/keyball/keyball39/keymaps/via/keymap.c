@@ -20,6 +20,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "quantum.h"
 
+#include "os_detection.h"
+
 // clang-format off
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
   // keymap for default (VIA)
@@ -69,3 +71,49 @@ void oledkit_render_info_user(void) {
     keyball_oled_render_layerinfo();
 }
 #endif
+
+// OS検出してスクロール向き等を変更
+#if defined(OS_DETECTION_ENABLE) && defined(DEFERRED_EXEC_ENABLE)
+uint32_t os_detect_callback(uint32_t trigger_time, void *cb_arg)
+{
+#if defined(MAGIC_KEYCODE_ENABLE) || defined(KEYBALL_KEEP_MAGIC_FUNCTIONS)
+  keymap_config.raw = eeconfig_read_keymap();
+#endif
+  switch (detected_host_os())
+  {
+  case OS_MACOS:
+  {
+    uint8_t mode = 0;
+    keyball_set_scroll_reverse_mode(mode);
+#if defined(MAGIC_KEYCODE_ENABLE) || defined(KEYBALL_KEEP_MAGIC_FUNCTIONS)
+    keymap_config.swap_lalt_lgui = false;
+    // keymap_config.swap_ralt_rgui = false;
+#endif
+    break;
+  }
+  case OS_WINDOWS:
+  {
+    uint8_t mode = KEYBALL_SCROLL_REVERSE_VERTICAL | KEYBALL_SCROLL_REVERSE_HORIZONTAL;
+    keyball_set_scroll_reverse_mode(mode);
+#if defined(MAGIC_KEYCODE_ENABLE) || defined(KEYBALL_KEEP_MAGIC_FUNCTIONS)
+    keymap_config.swap_lalt_lgui = true;
+    // keymap_config.swap_ralt_rgui = true;
+#endif
+    break;
+  }
+  default:
+    break;
+  }
+#if defined(MAGIC_KEYCODE_ENABLE) || defined(KEYBALL_KEEP_MAGIC_FUNCTIONS)
+  eeconfig_update_keymap(keymap_config.raw);
+#endif
+  return 0;
+}
+#endif
+
+void keyboard_post_init_user(void)
+{
+#if defined(OS_DETECTION_ENABLE) && defined(DEFERRED_EXEC_ENABLE)
+  defer_exec(100, os_detect_callback, NULL);
+#endif
+}

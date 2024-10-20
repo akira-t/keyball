@@ -233,6 +233,14 @@ __attribute__((weak)) void keyball_on_apply_motion_to_mouse_scroll(keyball_motio
             break;
     }
 #endif
+    if (keyball_get_scroll_reverse_mode() & KEYBALL_SCROLL_REVERSE_VERTICAL)
+    {
+        r->v = -r->v;
+    }
+    if (keyball_get_scroll_reverse_mode() & KEYBALL_SCROLL_REVERSE_HORIZONTAL)
+    {
+        r->h = -r->h;
+    }
 }
 
 static void motion_to_mouse(keyball_motion_t *m, report_mouse_t *r, bool is_left, bool as_scroll) {
@@ -661,6 +669,25 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
             // to apply QK_MODS actions, allow to process others.
             return true;
         }
+#else
+        case KC_MS_WH_UP:
+        case KC_MS_WH_DOWN:
+            if (keyball_get_scroll_reverse_mode() & KEYBALL_SCROLL_REVERSE_VERTICAL)
+            {
+                extern void register_mouse(uint8_t mouse_keycode, bool pressed);
+                register_mouse(keycode == KC_MS_WH_UP ? KC_MS_WH_DOWN : KC_MS_WH_UP, record->event.pressed);
+                return false;
+            }
+            break;
+        case KC_MS_WH_LEFT:
+        case KC_MS_WH_RIGHT:
+            if (keyball_get_scroll_reverse_mode() & KEYBALL_SCROLL_REVERSE_HORIZONTAL)
+            {
+                extern void register_mouse(uint8_t mouse_keycode, bool pressed);
+                register_mouse(keycode == KC_MS_WH_LEFT ? KC_MS_WH_RIGHT : KC_MS_WH_LEFT, record->event.pressed);
+                return false;
+            }
+            break;
 #endif
 
         case SCRL_MO:
@@ -779,3 +806,16 @@ uint8_t mod_config(uint8_t mod) {
 }
 
 #endif
+
+uint8_t keyball_get_scroll_reverse_mode(void)
+{
+    return keyball.scroll_reverse_mode;
+}
+
+void keyball_set_scroll_reverse_mode(uint8_t mode)
+{
+    if (mode <= (KEYBALL_SCROLL_REVERSE_VERTICAL | KEYBALL_SCROLL_REVERSE_HORIZONTAL))
+    {
+        keyball.scroll_reverse_mode = mode;
+    }
+}

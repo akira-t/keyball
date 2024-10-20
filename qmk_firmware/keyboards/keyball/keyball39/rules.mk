@@ -47,3 +47,7 @@ SRC += lib/keyball/keyball.c
 SPACE_CADET_ENABLE = no
 GRAVE_ESC_ENABLE = no
 MAGIC_ENABLE = no
+
+# OS検出
+OS_DETECTION_ENABLE = yes
+DEFERRED_EXEC_ENABLE = yes

@@ -172,6 +172,10 @@ typedef struct {
 #elif KEYBALL_SCROLLSNAP_ENABLE == 2
     keyball_scrollsnap_mode_t scrollsnap_mode;
 #endif
+    
+    // windowsでスクロールの向きを逆にする用
+    //  [Keyballの操作性をmacOSとWindowsで揃える](https://zenn.dev/yoichi/articles/qmk-swap-keys-by-os)
+    uint8_t scroll_reverse_mode; 
 
     uint16_t       last_kc;
     keypos_t       last_pos;
@@ -186,6 +190,12 @@ typedef enum {
     KEYBALL_ADJUST_PRIMARY   = 1,
     KEYBALL_ADJUST_SECONDARY = 2,
 } keyball_adjust_t;
+
+enum
+{
+    KEYBALL_SCROLL_REVERSE_VERTICAL = 1,
+    KEYBALL_SCROLL_REVERSE_HORIZONTAL = 2,
+};
 
 //////////////////////////////////////////////////////////////////////////////
 // Exported values (touch carefully)
@@ -270,3 +280,13 @@ uint8_t keyball_get_cpi(void);
 /// In addition, if you do not upload SROM, the maximum value will be limited
 /// to 35 (3500CPI).
 void keyball_set_cpi(uint8_t cpi);
+
+/// keyball_get_scroll_reverse_mode gets current scroll directions.
+/// See also keyball_set_scroll_reverse_mode for the detail.
+uint8_t keyball_get_scroll_reverse_mode(void);
+
+/// keyball_set_scroll_reverse_mode changes scroll directions.
+///
+/// The directions are described by the mode which is composition of the flags
+/// KEYBALL_SCROLL_REVERSE_VERTICAL and KEYBALL_SCROLL_REVERSE_HORIZONTAL.
+void keyball_set_scroll_reverse_mode(uint8_t mode);
