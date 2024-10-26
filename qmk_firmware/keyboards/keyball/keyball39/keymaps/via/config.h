@@ -40,4 +40,4 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 // 英数ボタンをダブルタップした時に、Layer 3に行ってくれない問題への対応
 //  [\#define QUICK\_TAP\_TERM 0](https://zenn.dev/cou_kamiya/articles/64943a9297ae96)
-#define QUICK_TAP_TERM 0
+#define QUICK_TAP_TERM 80
