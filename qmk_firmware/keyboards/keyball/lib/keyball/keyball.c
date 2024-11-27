@@ -138,6 +138,22 @@ void keyboard_pre_init_kb(void) {
     keyball.this_have_ball = pmw3360_init();
     keyboard_pre_init_user();
 }
+#else
+void keyboard_pre_init_kb(void)
+{
+    // 左手側の場合のみ、B3ピンを設定
+    if (!keyball.this_have_ball && is_keyboard_left())//is_keyboard_leftは判定しなくてもいいか
+    {
+        // col5ピンをb3にしたため初期化が必要
+        setPinInput(B3);
+        writePinHigh(B3); // プルアップを有効化
+
+        // B5とB6をアナログ入力として設定
+        setPinInput(B5);
+        setPinInput(B6);
+    }
+    keyboard_pre_init_user();
+}
 #endif
 
 void pointing_device_driver_init(void) {
@@ -818,4 +834,53 @@ void keyball_set_scroll_reverse_mode(uint8_t mode)
     {
         keyball.scroll_reverse_mode = mode;
     }
+}
+
+// #define JOYSTICK_THRESHOLD 512 // ADCの中間値（0-1023の半分）
+// #define KEY_UP KC_A
+// #define KEY_DOWN KC_B
+// #define KEY_LEFT KC_C
+// #define KEY_RIGHT KC_D
+
+// ジョイスティックの設定
+joystick_config_t joystick_axes[JOYSTICK_AXIS_COUNT] = {
+    JOYSTICK_AXIS_IN(ANALOG_JOYSTICK_X_AXIS_PIN, 0, 512, 1023), // X軸
+    JOYSTICK_AXIS_IN(ANALOG_JOYSTICK_Y_AXIS_PIN, 0, 512, 1023)  // Y軸
+};
+
+
+void matrix_scan_kb(void)
+{
+    static uint8_t counter;
+
+    if (is_keyboard_left())
+    {
+        counter++;
+
+        if ((counter % 10) == 0)
+        { // 約10msごとに処理
+            int16_t x_value = joystick_read_axis(0);
+            int16_t y_value = joystick_read_axis(1);
+
+            // デッドゾーンの設定（中央付近の微小な揺れを無視）
+            // if (abs(x_value) < 50)
+            //     x_value = 0;
+            // if (abs(y_value) < 50)
+            //     y_value = 0;
+
+            // ジョイスティックの値をマウス移動に変換
+            report_mouse_t mouse_report = {0};
+
+            // X軸の移動量を計算（-127から127の範囲に収める）
+            mouse_report.x = (int8_t)((x_value * JOYSTICK_SPEED) / 512 );
+            // Y軸の移動量を計算（上下は反転させる）
+            mouse_report.y = (int8_t)((y_value * JOYSTICK_SPEED) / 512 );
+
+            // マウスレポートを送信（既存のトラックボール処理に追加）
+            pointing_device_set_report(mouse_report);
+            pointing_device_send();
+        }
+    }
+
+    matrix_scan_user();
 }

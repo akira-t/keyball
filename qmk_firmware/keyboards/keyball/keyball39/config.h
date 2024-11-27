@@ -21,15 +21,21 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // Key matrix parameters
 #define MATRIX_ROWS         (4 * 2)  // split keyboard
 #define MATRIX_COLS         6
+// #define EE_HANDS
+// #define MASTER_RIGHT
+#define MATRIX_ROW_PINS_RIGHT     { F4, F5, F6, F7 }
 #define MATRIX_ROW_PINS     { F4, F5, F6, F7 }
-#define MATRIX_COL_PINS     { D4, C6, D7, E6, B4, B5 }
+#define MATRIX_COL_PINS_RIGHT     { D4, C6, D7, E6, B4, B5 }
+#define MATRIX_COL_PINS     { D4, C6, D7, E6, B4, B3 }
+// #define MATRIX_COL_PINS     { D4, C6, D7, E6, B4, B5 }
 #define MATRIX_MASKED
 #define DEBOUNCE            5
 #define DIODE_DIRECTION     COL2ROW
 
 // Split parameters
 #define SOFT_SERIAL_PIN         D2
-#define SPLIT_HAND_MATRIX_GRID  F6, B5
+// #define SPLIT_HAND_MATRIX_GRID  F6, B5
+#define SPLIT_HAND_MATRIX_GRID  F6, B3
 #define SPLIT_USB_DETECT
 #ifdef OLED_ENABLE
 #    define SPLIT_OLED_ENABLE
@@ -79,3 +85,17 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #undef LOCKING_RESYNC_ENABLE
 
 #define KEYBALL_KEEP_MAGIC_FUNCTIONS  // windowsで⌘→alt用
+
+// アナログ設定
+#define ADC_CHANNEL_VREF ADC_REF_POWER
+#define ANALOG_JOYSTICK_X_AXIS_PIN B5
+#define ANALOG_JOYSTICK_Y_AXIS_PIN B6
+
+// Min 0, max 32
+#define JOYSTICK_BUTTON_COUNT 1
+// Min 0, max 6: X, Y, Z, Rx, Ry, Rz
+#define JOYSTICK_AXIS_COUNT 2
+// Min 8, max 16
+#define JOYSTICK_AXIS_RESOLUTION 10
+#define JOYSTICK_SPEED 20 // 移動速度の係数
+// #define POINTING_DEVICE_INVERT_Y  // 機能せず
