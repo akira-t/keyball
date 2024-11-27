@@ -868,13 +868,13 @@ void matrix_scan_kb(void)
             // if (abs(y_value) < 50)
             //     y_value = 0;
 
-            // ジョイスティックの値をマウス移動に変換
-            report_mouse_t mouse_report = {0};
+            // 既存のマウスレポートを取得して修正する
+            report_mouse_t mouse_report = pointing_device_get_report();
 
             // X軸の移動量を計算（-127から127の範囲に収める）
-            mouse_report.x = (int8_t)((x_value * JOYSTICK_SPEED) / 512 );
+            mouse_report.x += (int8_t)((x_value * JOYSTICK_SPEED) / 512 );
             // Y軸の移動量を計算（上下は反転させる）
-            mouse_report.y = (int8_t)((y_value * JOYSTICK_SPEED) / 512 );
+            mouse_report.y += (int8_t)((y_value * JOYSTICK_SPEED) / 512 );
 
             // マウスレポートを送信（既存のトラックボール処理に追加）
             pointing_device_set_report(mouse_report);
