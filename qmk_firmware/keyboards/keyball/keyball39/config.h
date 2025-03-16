@@ -90,6 +90,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define ADC_CHANNEL_VREF ADC_REF_POWER
 #define ANALOG_JOYSTICK_X_AXIS_PIN B5
 #define ANALOG_JOYSTICK_Y_AXIS_PIN B6
+#define ANALOG_JOYSTICK_AXIS_MIN 300
 
 // Min 0, max 32
 #define JOYSTICK_BUTTON_COUNT 1
@@ -99,3 +100,5 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define JOYSTICK_AXIS_RESOLUTION 10
 #define JOYSTICK_SPEED 20 // 移動速度の係数
 // #define POINTING_DEVICE_INVERT_Y  // 機能せず
+#define JOYSTICK_DEADZONE 30  // AMLのためのみ。他の場合はどこかで設定されているか不明　
+#define ANALOG_JOYSTICK_WEIGHTS {0, 2, 4, 5, 7, 8, 9, 10, 12, 13, 14, 15, 15, 16, 17, 18, 18, 19, 19, 20, 20, 21, 21, 21, 22, 22, 22, 22, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 24, 24, 24, 24, 24, 24, 25, 25, 25, 26, 26, 26, 27, 28, 28, 29, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 40, 41, 43, 44, 46, 48, 49, 51, 53, 56, 58, 60, 62, 65, 68, 70, 73, 76, 79, 82, 85, 89, 92, 96, 100}
