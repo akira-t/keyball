@@ -111,9 +111,141 @@ uint32_t os_detect_callback(uint32_t trigger_time, void *cb_arg)
 }
 #endif
 
+// ジョイスティックの設定はkeyball.cで定義済み
+
+// 以前の実装用の変数（現在は使用していない）
+// static bool alt_pressed = false;
+// static bool cmd_pressed = false;
+// static bool shift_pressed = false;
+// static bool layer2_on = false;
+// static bool layer3_on = false;
+
+// ジョイスティックの状態を追跡する変数
+static uint16_t joystick_x = 0;
+static uint16_t joystick_y = 0;
+static bool joystick_key_mode_active = true; // デフォルトでジョイスティックキーモードを有効に
+
+// キーの状態を追跡する変数
+static bool key_pressed[256] = {false}; // すべてのキーコードに対応
+
+// カスタムキーコード定義
+enum custom_keycodes {
+    JS_DEBUG = SAFE_RANGE,
+};
+
 void keyboard_post_init_user(void)
 {
 #if defined(OS_DETECTION_ENABLE) && defined(DEFERRED_EXEC_ENABLE)
-  defer_exec(100, os_detect_callback, NULL);
+    defer_exec(100, os_detect_callback, NULL);
 #endif
+
+    // EEPROMをリセット
+    // eeconfig_init();
+
+    // ジョイスティックのピンを明示的に設定
+    if (is_keyboard_left()) {
+        setPinInput(B5); // X軸
+        setPinInput(B6); // Y軸
+    }
+}
+
+// ジョイスティックの処理をprocess_record_user関数で実装
+bool process_record_user(uint16_t keycode, keyrecord_t *record) {
+    // キーの状態を追跡
+    uint8_t kc = keycode & 0xFF; // 下位8ビットのみを使用
+    
+    if (record->event.pressed) {
+        key_pressed[kc] = true;
+    } else {
+        key_pressed[kc] = false;
+    }
+    
+    switch (keycode) {
+        case JS_DEBUG:
+            if (record->event.pressed) {
+                // ジョイスティックキーモードの切り替え
+                joystick_key_mode_active = !joystick_key_mode_active;
+            }
+            return false;
+        default:
+            return true;
+    }
+}
+
+// ジョイスティックの値を読み取る関数
+void read_joystick_values(void) {
+    if (!is_keyboard_left()) return;
+    
+    // ジョイスティックの値を読み取る
+    joystick_x = joystick_read_axis(0);
+    joystick_y = joystick_read_axis(1);
+}
+
+// キーがキーボードから押されているかどうかをチェックする関数
+bool is_key_pressed_by_keyboard(uint8_t keycode) {
+    return key_pressed[keycode];
+}
+
+// ジョイスティックによるキー操作を行う関数
+void joystick_key_action(uint8_t keycode, bool pressed) {
+    if (pressed) {
+        register_code(keycode);
+    } else {
+        // キーがキーボードから押されていない場合のみunregister
+        if (!is_key_pressed_by_keyboard(keycode)) {
+            unregister_code(keycode);
+        }
+    }
+}
+
+// matrix_scan_user関数でジョイスティックの値を読み取る
+void matrix_scan_user(void) {
+    static uint32_t joystick_timer = 0;
+    static bool js_shift_active = false;
+    static bool js_alt_active = false;
+    static bool js_gui_active = false;
+    static bool js_layer2_active = false;
+    
+    // 20msごとにジョイスティックの値を読み取る（より高速に）
+    if (timer_elapsed32(joystick_timer) > 20) {
+        joystick_timer = timer_read32();
+        read_joystick_values();
+        
+        // ジョイスティックキーモードがアクティブな場合、ジョイスティックの値に応じてキーを押す
+        if (joystick_key_mode_active) {
+            // デッドゾーンを大きくする
+            const int16_t deadzone = JOYSTICK_KEY_TH;
+            
+            // X軸の処理（左右）
+            bool new_shift_active = joystick_x > deadzone;
+            if (new_shift_active != js_shift_active) {
+                joystick_key_action(KC_LSFT, new_shift_active);
+                js_shift_active = new_shift_active;
+            }
+            
+            // 左方向の閾値を大きくする
+            bool new_layer2_active = joystick_x < -deadzone * 1.5;
+            if (new_layer2_active != js_layer2_active) {
+                if (new_layer2_active) {
+                    layer_on(2);
+                } else {
+                    layer_off(2);
+                }
+                js_layer2_active = new_layer2_active;
+            }
+            
+            // Y軸の処理（上下）
+            bool new_gui_active = joystick_y > deadzone;
+            if (new_gui_active != js_gui_active) {
+                joystick_key_action(KC_LGUI, new_gui_active);
+                js_gui_active = new_gui_active;
+            }
+            
+            bool new_alt_active = joystick_y < -deadzone;
+            if (new_alt_active != js_alt_active) {
+                joystick_key_action(KC_LALT, new_alt_active);
+                js_alt_active = new_alt_active;
+            }
+        }
+    }
 }

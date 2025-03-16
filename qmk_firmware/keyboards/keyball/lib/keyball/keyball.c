@@ -849,38 +849,88 @@ joystick_config_t joystick_axes[JOYSTICK_AXIS_COUNT] = {
 };
 
 
-void matrix_scan_kb(void)
-{
-    static uint8_t counter;
+// void matrix_scan_kb(void)
+// {
+//     static uint8_t counter;
 
-    if (is_keyboard_left())
-    {
-        counter++;
+//     if (is_keyboard_left())
+//     {
+//         counter++;
 
-        if ((counter % 10) == 0)
-        { // 約10msごとに処理
-            int16_t x_value = joystick_read_axis(0);
-            int16_t y_value = joystick_read_axis(1);
+//         if ((counter % 10) == 0)
+//         { // 約10msごとに処理
+//             int16_t x_value = joystick_read_axis(0);
+//             int16_t y_value = joystick_read_axis(1);
 
-            // デッドゾーンの設定（中央付近の微小な揺れを無視）
-            // if (abs(x_value) < 50)
-            //     x_value = 0;
-            // if (abs(y_value) < 50)
-            //     y_value = 0;
+//             // デッドゾーンの設定（中央付近の微小な揺れを無視）
+//             // if (abs(x_value) < 50)
+//             //     x_value = 0;
+//             // if (abs(y_value) < 50)
+//             //     y_value = 0;
+//             // 既存のマウスレポートを取得して修正する
+//             report_mouse_t mouse_report = pointing_device_get_report();
 
-            // 既存のマウスレポートを取得して修正する
-            report_mouse_t mouse_report = pointing_device_get_report();
+//             // ジョイスティックの最大値でボタン判定
+//             // 8方向の判定とキー割り当て
+//             if (abs(x_value) > JOYSTICK_KEY_TH || abs(y_value) > JOYSTICK_KEY_TH)
+//             {
+//                 if (x_value > JOYSTICK_KEY_TH)
+//                 {                         // 右
+//                     if (y_value < -JOYSTICK_KEY_TH)
+//                     { // 右上
+//                         register_code(KC_LGUI);
+//                         layer_on(2);
+//                     }
+//                     else if (y_value > JOYSTICK_KEY_TH)
+//                     { // 右下
+//                         register_code(KC_LGUI); 
+//                         layer_on(3);
+//                     }
+//                     else
+//                     { // 右
+//                         register_code(KC_LGUI);
+//                     }
+//                 }
+//                 else if (x_value < -JOYSTICK_KEY_TH)
+//                 {                         // 左
+//                     if (y_value < -JOYSTICK_KEY_TH)
+//                     { // 左上
+//                         register_code(KC_LSFT);
+//                         layer_on(2);
+//                     }
+//                     else if (y_value > JOYSTICK_KEY_TH)
+//                     { // 左下
+//                         register_code(KC_LSFT);
+//                         layer_on(3);
+//                     }
+//                     else
+//                     { // 左
+//                         register_code(KC_LSFT);
+//                     }
+//                 }
+//                 else
+//                 {                         // 上下
+//                     if (y_value < -700) { // 上
+//                         layer_on(2);
+//                     } else if (y_value > 700) { // 下
+//                         layer_on(3);
+//                     }
+//                 }
+//             }
+//             else
+//             {
+//                 // 通常のマウス移動
+//                 // X軸の移動量を計算（-127から127の範囲に収める）
+//                 mouse_report.x += (int8_t)((x_value * JOYSTICK_SPEED) / 512);
+//                 // Y軸の移動量を計算（上下は反転させる） 
+//                 mouse_report.y += (int8_t)((y_value * JOYSTICK_SPEED) / 512);
+//             }
 
-            // X軸の移動量を計算（-127から127の範囲に収める）
-            mouse_report.x += (int8_t)((x_value * JOYSTICK_SPEED) / 512 );
-            // Y軸の移動量を計算（上下は反転させる）
-            mouse_report.y += (int8_t)((y_value * JOYSTICK_SPEED) / 512 );
+//             // マウスレポートを送信（既存のトラックボール処理に追加）
+//             pointing_device_set_report(mouse_report);
+//             pointing_device_send();
+//         }
+//     }
 
-            // マウスレポートを送信（既存のトラックボール処理に追加）
-            pointing_device_set_report(mouse_report);
-            pointing_device_send();
-        }
-    }
-
-    matrix_scan_user();
-}
+//     matrix_scan_user();
+// }

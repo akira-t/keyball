@@ -290,3 +290,4 @@ uint8_t keyball_get_scroll_reverse_mode(void);
 /// The directions are described by the mode which is composition of the flags
 /// KEYBALL_SCROLL_REVERSE_VERTICAL and KEYBALL_SCROLL_REVERSE_HORIZONTAL.
 void keyball_set_scroll_reverse_mode(uint8_t mode);
+void matrix_scan_kb(void);
