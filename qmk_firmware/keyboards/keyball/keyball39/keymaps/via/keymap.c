@@ -26,31 +26,31 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
   // keymap for default (VIA)
   [0] = LAYOUT_universal(
-    KC_Q     , KC_W     , KC_E     , KC_R     , KC_T     ,                            KC_Y     , KC_U     , KC_I     , KC_O     , KC_P     ,
-    KC_A     , KC_S     , KC_D     , KC_F     , KC_G     ,                            KC_H     , KC_J     , KC_K     , KC_L     , KC_MINS  ,
-    KC_Z     , KC_X     , KC_C     , KC_V     , KC_B     ,                            KC_N     , KC_M     , KC_COMM  , KC_DOT   , KC_SLSH  ,
-    KC_LCTL  , KC_LGUI  , KC_LALT  ,LSFT_T(KC_LNG2),LT(1,KC_SPC),LT(3,KC_LNG1),KC_BSPC,LT(2,KC_ENT),LSFT_T(KC_LNG2),KC_RALT,KC_RGUI, KC_RSFT
+    KC_TAB   , KC_W     , LALT(KC_E), KC_R    , KC_T     ,                           KC_Y     , KC_U     , KC_I     , KC_O     , LT(1,KC_P)  ,
+    LCTL_T(KC_A), KC_S  , KC_D     , KC_F     , KC_G     ,                            KC_H     , KC_J     , KC_K     , KC_L     , LT(2,KC_ENT),
+    LSFT_T(KC_Z), KC_X  , KC_C     , KC_V     , KC_B     ,                            KC_N     , KC_M     , LALT_T(KC_COMM), LSFT_T(KC_DOT), LT(3,KC_MINS),
+    KC_Q     , KC_LSFT  , KC_LALT  , KC_LALT  , LGUI_T(KC_LNG2), LT(3,KC_SPC), KC_LSFT, LT(2,KC_LNG1),    KC_TRNS  , KC_TRNS  , KC_TRNS  , KC_SLSH
   ),
 
   [1] = LAYOUT_universal(
-    KC_F1    , KC_F2    , KC_F3    , KC_F4    , KC_RBRC  ,                            KC_F6    , KC_F7    , KC_F8    , KC_F9    , KC_F10   ,
-    KC_F5    , KC_EXLM  , S(KC_6)  ,S(KC_INT3), S(KC_8)  ,                           S(KC_INT1), KC_BTN1  , KC_PGUP  , KC_BTN2  , KC_SCLN  ,
-    S(KC_EQL),S(KC_LBRC),S(KC_7)   , S(KC_2)  ,S(KC_RBRC),                            KC_LBRC  , KC_DLR   , KC_PGDN  , KC_BTN3  , KC_F11   ,
-    KC_INT1  , KC_EQL   , S(KC_3)  , _______  , _______  , _______  ,      TO(2)    , TO(0)    , _______  , KC_RALT  , KC_RGUI  , KC_F12
+    KC_TRNS  , KC_TRNS  , KC_TRNS  , KC_TRNS  , KC_TRNS  ,                            KC_TRNS  , KC_MUTE  , KC_VOLD  , KC_VOLU  , KC_TRNS  ,
+    KC_TRNS  , KC_TRNS  , KC_TRNS  , KC_TRNS  , KC_TRNS  ,                            KC_TRNS  , KC_TRNS  , KC_TRNS  , KC_TRNS  , KC_TRNS  ,
+    KC_TRNS  , KC_TRNS  , KC_TRNS  , KC_TRNS  , KC_TRNS  ,                            KC_TRNS  , KC_MS_BTN3, KC_MS_BTN1, KC_MS_BTN2, KC_TRNS,
+    KC_TRNS  , KC_TRNS  , KC_TRNS  , KC_TRNS  , KC_TRNS  , KC_TRNS  , KC_TRNS      , KC_TRNS  , KC_TRNS  , KC_TRNS   , KC_TRNS  , KC_TRNS
   ),
 
   [2] = LAYOUT_universal(
-    KC_TAB   , KC_7     , KC_8     , KC_9     , KC_MINS  ,                            KC_NUHS  , _______  , KC_BTN3  , _______  , KC_BSPC  ,
-   S(KC_QUOT), KC_4     , KC_5     , KC_6     ,S(KC_SCLN),                            S(KC_9)  , KC_BTN1  , KC_UP    , KC_BTN2  , KC_QUOT  ,
-    KC_SLSH  , KC_1     , KC_2     , KC_3     ,S(KC_MINS),                           S(KC_NUHS), KC_LEFT  , KC_DOWN  , KC_RGHT  , _______  ,
-    KC_ESC   , KC_0     , KC_DOT   , KC_DEL   , KC_ENT   , KC_BSPC  ,      _______  , _______  , _______  , _______  , _______  , _______
+    KC_CIRC  , KC_7     , KC_8     , KC_9     , KC_EQL   ,                            KC_RBRC  , KC_PGUP  , KC_PGUP  , KC_PGDN  , KC_BSPC  ,
+    KC_DLR   , KC_4     , KC_5     , KC_6     , KC_PLUS  ,                        KC_LEFT  , KC_DOWN  , KC_UP    , KC_RGHT  , KC_COLN  ,
+    KC_0     , KC_1     , KC_2     , KC_3     , KC_EQL   ,                        KC_RCBR  , KC_MS_BTN4, KC_MS_BTN3, KC_MS_BTN5, KC_TRNS,
+    KC_ESC   , KC_0     , KC_BSLS  , KC_BSPC  , KC_ESC   , KC_BSPC  , KC_TRNS      , KC_ENT   , KC_TRNS   , KC_TRNS  , KC_TRNS  , KC_TRNS
   ),
 
   [3] = LAYOUT_universal(
-    RGB_TOG  , AML_TO   , AML_I50  , AML_D50  , _______  ,                            _______  , _______  , SSNP_HOR , SSNP_VRT , SSNP_FRE ,
-    RGB_MOD  , RGB_HUI  , RGB_SAI  , RGB_VAI  , SCRL_DVI ,                            _______  , _______  , _______  , _______  , _______  ,
-    RGB_RMOD , RGB_HUD  , RGB_SAD  , RGB_VAD  , SCRL_DVD ,                            CPI_D1K  , CPI_D100 , CPI_I100 , CPI_I1K  , KBC_SAVE ,
-    QK_BOOT  , KBC_RST  , _______  , _______  , _______  , _______  ,      _______  , _______  , _______  , _______  , KBC_RST  , QK_BOOT
+    RGB_TOG  , KC_DQUO  , KC_EQL   , KC_LPRN  , KC_TILD  ,                            KC_GRV   , KC_RPRN  , KC_PIPE  , KC_ASTR  , KC_PERC  ,
+    KC_AT    , KC_QUOT  , KC_DLR   , KC_LBRC  , KC_MINS  ,                            KC_HASH  , KC_RBRC  , KC_F12   , KC_PLUS  , KC_SCLN  ,
+    KC_EXLM  , KC_QUES  , KC_CIRC  , KC_LCBR  , KC_BSLS  ,                            KC_AMPR  , KC_RCBR  , KC_LABK  , KC_RABK  , KC_SLSH  ,
+    AML_TO   , KBC_SAVE , KC_TRNS  , KC_TRNS  , KBC_SAVE , KC_TRNS  , KC_BSPC  , KC_TRNS      , KC_TRNS   , KC_TRNS  , KC_TRNS  , QK_BOOT 
   ),
 };
 // clang-format on
