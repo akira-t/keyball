@@ -654,8 +654,15 @@ bool is_mouse_record_kb(uint16_t keycode, keyrecord_t* record) {
     switch (keycode) {
         case SCRL_MO:
             return true;
+        default:
+            if (abs(joystick_read_axis(0)) > JOYSTICK_DEADZONE ||
+                abs(joystick_read_axis(1)) > JOYSTICK_DEADZONE)
+            {
+                keyball_set_scroll_mode(true);
+                return true;
+            }
+            return is_mouse_record_user(keycode, record);
     }
-    return is_mouse_record_user(keycode, record);
 }
 #endif
 
