@@ -26,7 +26,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
   // keymap for default (VIA)
   [0] = LAYOUT_universal(
-    KC_TAB   , KC_W     , LALT(KC_E), KC_R    , KC_T     ,                           KC_Y     , KC_U     , KC_I     , KC_O     , LT(1,KC_P)  ,
+    KC_TAB   , KC_W     , LALT_T(KC_E), KC_R    , KC_T     ,                           KC_Y     , KC_U     , KC_I     , KC_O     , LT(1,KC_P)  ,
     LCTL_T(KC_A), KC_S  , KC_D     , KC_F     , KC_G     ,                            KC_H     , KC_J     , KC_K     , KC_L     , LT(2,KC_ENT),
     LSFT_T(KC_Z), KC_X  , KC_C     , KC_V     , KC_B     ,                            KC_N     , KC_M     , LALT_T(KC_COMM), LSFT_T(KC_DOT), LT(3,KC_MINS),
     KC_Q     , KC_LSFT  , KC_LALT  , KC_LALT  , LGUI_T(KC_LNG2), LT(3,KC_SPC), KC_LSFT, LT(2,KC_LNG1),    KC_TRNS  , KC_TRNS  , KC_TRNS  , KC_SLSH
@@ -48,7 +48,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 
   [3] = LAYOUT_universal(
     RGB_TOG  , KC_DQUO  , KC_EQL   , KC_LPRN  , KC_TILD  ,                            KC_GRV   , KC_RPRN  , KC_PIPE  , KC_ASTR  , KC_PERC  ,
-    KC_AT    , KC_QUOT  , KC_DLR   , KC_LBRC  , KC_MINS  ,                            KC_HASH  , KC_RBRC  , KC_F12   , KC_PLUS  , KC_SCLN  ,
+    KC_AT    , KC_QUOT  , KC_DLR   , KC_LBRC  , KC_UNDS  ,                            KC_HASH  , KC_RBRC  , KC_F12   , KC_PLUS  , KC_SCLN  ,
     KC_EXLM  , KC_QUES  , KC_CIRC  , KC_LCBR  , KC_BSLS  ,                            KC_AMPR  , KC_RCBR  , KC_LABK  , KC_RABK  , KC_SLSH  ,
     AML_TO   , KBC_SAVE , KC_TRNS  , KC_TRNS  , KBC_SAVE , KC_TRNS  , KC_BSPC  , KC_TRNS      , KC_TRNS   , KC_TRNS  , KC_TRNS  , QK_BOOT 
   ),
@@ -198,13 +198,52 @@ void joystick_key_action(uint8_t keycode, bool pressed) {
     }
 }
 
+// トラックボールの速度倍率を計算する変数と関数
+static float current_speed_multiplier = 1.0;
+
+// ジョイスティックの上方向の値に基づいて速度倍率を更新する関数
+void update_trackball_speed_multiplier(int16_t joystick_up_value) {
+    // ジョイスティックの上方向の入力値をデッドゾーンからの相対値に変換
+    // joystick_up_value は負の値（上方向）なので、絶対値を取る
+    int16_t abs_value = abs(joystick_up_value);
+    
+    // デッドゾーン以下の場合は倍率1.0（変更なし）
+    const int16_t deadzone = JOYSTICK_DEADZONE;
+    if (abs_value <= deadzone) {
+        current_speed_multiplier = 1.0;
+        return;
+    }
+    
+    // 入力値を0.0～1.0の範囲に正規化
+    // JOYSTICK_KEY_THを超えた分を、最大値（512程度）までの間で正規化
+    float normalized_value = (float)(abs_value - deadzone) / (512.0 - deadzone);
+    
+    // 値の範囲を制限（0.0～1.0）
+    if (normalized_value > 1.0) normalized_value = 1.0;
+    
+    // 1.0～10.0の範囲で倍率を計算（ここでは線形に変化）
+    current_speed_multiplier = 1.0 + normalized_value * 4.0; // 最大5倍
+}
+
+// pointing_device_task関数の前処理として速度調整関数を定義
+report_mouse_t pointing_device_task_kb(report_mouse_t mouse_report) {
+    // ジョイスティックの上方向の入力があった場合のみ倍率を適用
+    if (current_speed_multiplier > 1.0) {
+        mouse_report.x = (int8_t)((float)mouse_report.x * current_speed_multiplier);
+        mouse_report.y = (int8_t)((float)mouse_report.y * current_speed_multiplier);
+    }
+    
+    // 元の処理に進む
+    return pointing_device_task_user(mouse_report);
+}
+
 // matrix_scan_user関数でジョイスティックの値を読み取る
 void matrix_scan_user(void) {
     static uint32_t joystick_timer = 0;
     static bool js_shift_active = false;
     static bool js_alt_active = false;
     static bool js_gui_active = false;
-    static bool js_layer2_active = false;
+    // static bool js_layer2_active = false;
     
     // 20msごとにジョイスティックの値を読み取る（より高速に）
     if (timer_elapsed32(joystick_timer) > 20) {
@@ -223,15 +262,11 @@ void matrix_scan_user(void) {
                 js_shift_active = new_shift_active;
             }
             
-            // 左方向の閾値を大きくする
-            bool new_layer2_active = joystick_x < -deadzone * 1.5;
-            if (new_layer2_active != js_layer2_active) {
-                if (new_layer2_active) {
-                    layer_on(2);
-                } else {
-                    layer_off(2);
-                }
-                js_layer2_active = new_layer2_active;
+            // 左方向でAltキーを押す
+            bool new_alt_active = joystick_x < -deadzone;
+            if (new_alt_active != js_alt_active) {
+                joystick_key_action(KC_LALT, new_alt_active);
+                js_alt_active = new_alt_active;
             }
             
             // Y軸の処理（上下）
@@ -241,10 +276,19 @@ void matrix_scan_user(void) {
                 js_gui_active = new_gui_active;
             }
             
-            bool new_alt_active = joystick_y < -deadzone;
-            if (new_alt_active != js_alt_active) {
-                joystick_key_action(KC_LALT, new_alt_active);
-                js_alt_active = new_alt_active;
+            // bool new_alt_active = joystick_y < -deadzone;
+            // if (new_alt_active != js_alt_active) {
+            //     joystick_key_action(KC_LALT, new_alt_active);
+            //     js_alt_active = new_alt_active;
+            // }
+            
+            // 上方向の入力があった場合、トラックボールの速度倍率を更新
+            if (joystick_y < -deadzone) {
+                // ジョイスティックの上方向の入力値に基づいて速度倍率を計算
+                update_trackball_speed_multiplier(joystick_y);
+            } else {
+                // 上方向の入力がない場合は倍率を1.0に戻す
+                current_speed_multiplier = 1.0;
             }
         }
     }
