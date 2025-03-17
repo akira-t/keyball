@@ -121,8 +121,8 @@ uint32_t os_detect_callback(uint32_t trigger_time, void *cb_arg)
 // static bool layer3_on = false;
 
 // ジョイスティックの状態を追跡する変数
-static uint16_t joystick_x = 0;
-static uint16_t joystick_y = 0;
+static int16_t joystick_x = 0;
+static int16_t joystick_y = 0;
 static bool joystick_key_mode_active = true; // デフォルトでジョイスティックキーモードを有効に
 
 // キーの状態を追跡する変数
