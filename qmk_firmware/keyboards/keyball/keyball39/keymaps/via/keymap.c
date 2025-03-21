@@ -199,7 +199,7 @@ void joystick_key_action(uint8_t keycode, bool pressed) {
 }
 
 // トラックボールの速度倍率を計算する変数と関数
-static float current_speed_multiplier = 1.0;
+float current_speed_multiplier = 1.0; // staticを削除してグローバル変数にする
 
 // ジョイスティックの上方向の値に基づいて速度倍率を更新する関数
 void update_trackball_speed_multiplier(int16_t joystick_up_value) {
@@ -221,7 +221,7 @@ void update_trackball_speed_multiplier(int16_t joystick_up_value) {
     // 値の範囲を制限（0.0～1.0）
     if (normalized_value > 1.0) normalized_value = 1.0;
     
-    // 1.0～10.0の範囲で倍率を計算（ここでは線形に変化）
+    // 1.0～5.0の範囲で倍率を計算（ここでは線形に変化）
     current_speed_multiplier = 1.0 + normalized_value * 4.0; // 最大5倍
 }
 
@@ -240,10 +240,10 @@ report_mouse_t pointing_device_task_kb(report_mouse_t mouse_report) {
 // matrix_scan_user関数でジョイスティックの値を読み取る
 void matrix_scan_user(void) {
     static uint32_t joystick_timer = 0;
-    static bool js_shift_active = false;
-    static bool js_alt_active = false;
-    static bool js_gui_active = false;
-    // static bool js_layer2_active = false;
+    static bool js_shift_active = false;    // 上方向（Shift）
+    static bool js_ctrl_active = false;     // 左方向（Ctrl）
+    static bool js_opt_active = false;      // 右方向（Option/Alt）
+    static bool js_cmd_active = false;      // 下方向（Cmd/Win）
     
     // 20msごとにジョイスティックの値を読み取る（より高速に）
     if (timer_elapsed32(joystick_timer) > 20) {
@@ -255,32 +255,33 @@ void matrix_scan_user(void) {
             // デッドゾーンを大きくする
             const int16_t deadzone = JOYSTICK_KEY_TH;
             
-            // X軸の処理（左右）
-            bool new_shift_active = joystick_x > deadzone;
+            // 左方向: Ctrlキー
+            bool new_ctrl_active = joystick_x < -deadzone;
+            if (new_ctrl_active != js_ctrl_active) {
+                joystick_key_action(KC_LCTL, new_ctrl_active);
+                js_ctrl_active = new_ctrl_active;
+            }
+            
+            // 右方向: Optionキー
+            bool new_opt_active = joystick_x > deadzone;
+            if (new_opt_active != js_opt_active) {
+                joystick_key_action(KC_LALT, new_opt_active);
+                js_opt_active = new_opt_active;
+            }
+            
+            // 下方向: Cmdキー
+            bool new_cmd_active = joystick_y > deadzone;
+            if (new_cmd_active != js_cmd_active) {
+                joystick_key_action(KC_LGUI, new_cmd_active);
+                js_cmd_active = new_cmd_active;
+            }
+            
+            // 上方向: Shiftキー + 速度調整
+            bool new_shift_active = joystick_y < -deadzone;
             if (new_shift_active != js_shift_active) {
                 joystick_key_action(KC_LSFT, new_shift_active);
                 js_shift_active = new_shift_active;
             }
-            
-            // 左方向でAltキーを押す
-            bool new_alt_active = joystick_x < -deadzone;
-            if (new_alt_active != js_alt_active) {
-                joystick_key_action(KC_LALT, new_alt_active);
-                js_alt_active = new_alt_active;
-            }
-            
-            // Y軸の処理（上下）
-            bool new_gui_active = joystick_y > deadzone;
-            if (new_gui_active != js_gui_active) {
-                joystick_key_action(KC_LGUI, new_gui_active);
-                js_gui_active = new_gui_active;
-            }
-            
-            // bool new_alt_active = joystick_y < -deadzone;
-            // if (new_alt_active != js_alt_active) {
-            //     joystick_key_action(KC_LALT, new_alt_active);
-            //     js_alt_active = new_alt_active;
-            // }
             
             // 上方向の入力があった場合、トラックボールの速度倍率を更新
             if (joystick_y < -deadzone) {

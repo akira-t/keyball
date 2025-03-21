@@ -207,6 +207,13 @@ __attribute__((weak)) void keyball_on_apply_motion_to_mouse_scroll(keyball_motio
     int16_t x = divmod16(&m->x, div);
     int16_t y = divmod16(&m->y, div);
 
+    // 速度倍率を適用（外部から宣言）
+    extern float current_speed_multiplier;
+    if (current_speed_multiplier > 1.0) {
+        x = (int16_t)((float)x * current_speed_multiplier);
+        y = (int16_t)((float)y * current_speed_multiplier);
+    }
+
     // apply to mouse report.
 #if KEYBALL_MODEL == 61 || KEYBALL_MODEL == 39 || KEYBALL_MODEL == 147 || KEYBALL_MODEL == 44
     r->h = clip2int8(y);
