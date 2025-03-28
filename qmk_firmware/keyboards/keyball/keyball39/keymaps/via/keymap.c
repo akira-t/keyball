@@ -17,10 +17,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include QMK_KEYBOARD_H
-
-#include "quantum.h"
-
 #include "os_detection.h"
+#ifdef SPLIT_KEYBOARD
+#include "transactions.h"
+#endif
 
 // clang-format off
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
@@ -111,6 +111,19 @@ uint32_t os_detect_callback(uint32_t trigger_time, void *cb_arg)
 }
 #endif
 
+// スプリットキーボードでジョイスティック情報を転送する
+#ifdef SPLIT_KEYBOARD
+#define JS_SYNC_ID 0x30
+
+typedef struct {
+    int16_t x;
+    int16_t y;
+} joystick_sync_t;
+
+void joystick_slave_send_data(void);
+void joystick_master_receive_handler(uint8_t in_buflen, const void* in_data, uint8_t out_buflen, void* out_data);
+#endif
+
 // ジョイスティックの設定はkeyball.cで定義済み
 
 // 以前の実装用の変数（現在は使用していない）
@@ -125,6 +138,19 @@ static int16_t joystick_x = 0;
 static int16_t joystick_y = 0;
 static bool joystick_key_mode_active = true; // デフォルトでジョイスティックキーモードを有効に
 
+// Hat Switchの方向定義
+enum joystick_hat_direction {
+    HAT_CENTER = 0,
+    HAT_UP = 1,
+    HAT_UP_RIGHT = 2,
+    HAT_RIGHT = 3,
+    HAT_DOWN_RIGHT = 4,
+    HAT_DOWN = 5,
+    HAT_DOWN_LEFT = 6,
+    HAT_LEFT = 7,
+    HAT_UP_LEFT = 8
+};
+
 // キーの状態を追跡する変数
 static bool key_pressed[256] = {false}; // すべてのキーコードに対応
 
@@ -133,20 +159,125 @@ enum custom_keycodes {
     JS_DEBUG = SAFE_RANGE,
 };
 
-void keyboard_post_init_user(void)
-{
-#if defined(OS_DETECTION_ENABLE) && defined(DEFERRED_EXEC_ENABLE)
-    defer_exec(100, os_detect_callback, NULL);
-#endif
-
-    // EEPROMをリセット
-    // eeconfig_init();
+// keyboard_post_init_user関数でトランザクションハンドラを登録
+#ifdef SPLIT_KEYBOARD
+void keyboard_post_init_user(void) {
+    // マスターのみがハンドラを登録
+    if (is_keyboard_master()) {
+        transaction_register_rpc(JS_SYNC_ID, joystick_master_receive_handler);
+    }
+    
+    #if defined(OS_DETECTION_ENABLE) && defined(DEFERRED_EXEC_ENABLE)
+        defer_exec(100, os_detect_callback, NULL);
+    #endif
 
     // ジョイスティックのピンを明示的に設定
     if (is_keyboard_left()) {
         setPinInput(B5); // X軸
         setPinInput(B6); // Y軸
     }
+}
+#else
+void keyboard_post_init_user(void) {
+    #if defined(OS_DETECTION_ENABLE) && defined(DEFERRED_EXEC_ENABLE)
+        defer_exec(100, os_detect_callback, NULL);
+    #endif
+
+    // ジョイスティックのピンを明示的に設定
+    if (is_keyboard_left()) {
+        setPinInput(B5); // X軸
+        setPinInput(B6); // Y軸
+    }
+}
+#endif
+
+// Hat Switchの状態に応じてキー登録を行う関数（共通キーは保持する改良版）
+void process_joystick_hat(uint8_t hat_state) {
+    static uint8_t prev_hat_state = HAT_CENTER;
+    static bool shift_active = false;
+    static bool ctrl_active = false;
+    static bool alt_active = false;
+    static bool gui_active = false;
+    
+    if (hat_state == prev_hat_state) {
+        return; // 状態に変化がなければ何もしない
+    }
+    
+    // 現在の方向に必要なキー状態を決定
+    bool need_shift = false;
+    bool need_ctrl = false;
+    bool need_alt = false;
+    bool need_gui = false;
+    
+    switch (hat_state) {
+        case HAT_UP:
+            need_shift = true;
+            break;
+        case HAT_UP_RIGHT:
+            need_shift = true;
+            need_alt = true;
+            break;
+        case HAT_RIGHT:
+            need_alt = true;
+            break;
+        case HAT_DOWN_RIGHT:
+            need_gui = true;
+            need_shift = true;
+            break;
+        case HAT_DOWN:
+            need_gui = true;
+            break;
+        case HAT_DOWN_LEFT:
+            need_gui = true;
+            need_ctrl = true;
+            break;
+        case HAT_LEFT:
+            need_ctrl = true;
+            break;
+        case HAT_UP_LEFT:
+            need_shift = true;
+            need_ctrl = true;
+            break;
+    }
+    
+    // 必要に応じてキーを押す/離す（状態が変わる場合のみ）
+    if (need_shift != shift_active) {
+        if (need_shift) {
+            register_code(KC_LSFT);
+        } else {
+            unregister_code(KC_LSFT);
+        }
+        shift_active = need_shift;
+    }
+    
+    if (need_ctrl != ctrl_active) {
+        if (need_ctrl) {
+            register_code(KC_LCTL);
+        } else {
+            unregister_code(KC_LCTL);
+        }
+        ctrl_active = need_ctrl;
+    }
+    
+    if (need_alt != alt_active) {
+        if (need_alt) {
+            register_code(KC_LALT);
+        } else {
+            unregister_code(KC_LALT);
+        }
+        alt_active = need_alt;
+    }
+    
+    if (need_gui != gui_active) {
+        if (need_gui) {
+            register_code(KC_LGUI);
+        } else {
+            unregister_code(KC_LGUI);
+        }
+        gui_active = need_gui;
+    }
+    
+    prev_hat_state = hat_state;
 }
 
 // ジョイスティックの処理をprocess_record_user関数で実装
@@ -201,22 +332,22 @@ void joystick_key_action(uint8_t keycode, bool pressed) {
 // トラックボールの速度倍率を計算する変数と関数
 float current_speed_multiplier = 1.0; // staticを削除してグローバル変数にする
 
-// ジョイスティックの上方向の値に基づいて速度倍率を更新する関数
-void update_trackball_speed_multiplier(int16_t joystick_up_value) {
-    // ジョイスティックの上方向の入力値をデッドゾーンからの相対値に変換
-    // joystick_up_value は負の値（上方向）なので、絶対値を取る
-    int16_t abs_value = abs(joystick_up_value);
+// ジョイスティックの下方向の値に基づいて速度倍率を更新する関数
+void update_trackball_speed_multiplier(int16_t joystick_down_value) {
+    // ジョイスティックの下方向の入力値をデッドゾーンからの相対値に変換
+    // joystick_down_value は正の値（下方向）なので、そのまま使用
+    int16_t value = joystick_down_value;
     
     // デッドゾーン以下の場合は倍率1.0（変更なし）
     const int16_t deadzone = JOYSTICK_DEADZONE;
-    if (abs_value <= deadzone) {
+    if (value <= deadzone) {
         current_speed_multiplier = 1.0;
         return;
     }
     
     // 入力値を0.0～1.0の範囲に正規化
     // JOYSTICK_KEY_THを超えた分を、最大値（512程度）までの間で正規化
-    float normalized_value = (float)(abs_value - deadzone) / (512.0 - deadzone);
+    float normalized_value = (float)(value - deadzone) / (512.0 - deadzone);
     
     // 値の範囲を制限（0.0～1.0）
     if (normalized_value > 1.0) normalized_value = 1.0;
@@ -239,58 +370,88 @@ report_mouse_t pointing_device_task_kb(report_mouse_t mouse_report) {
     return pointing_device_task_user(mouse_report);
 }
 
+// スプリットキーボードでジョイスティック情報を転送する
+#ifdef SPLIT_KEYBOARD
+void joystick_slave_send_data(void) {
+    if (!is_keyboard_left() || is_keyboard_master()) {
+        return; // スレーブで左側のみ対応
+    }
+    
+    joystick_sync_t data = {
+        .x = joystick_x,
+        .y = joystick_y
+    };
+    
+    transaction_rpc_send(JS_SYNC_ID, sizeof(data), &data);
+}
+
+void joystick_master_receive_handler(uint8_t in_buflen, const void* in_data, uint8_t out_buflen, void* out_data) {
+    if (!is_keyboard_master()) {
+        return;
+    }
+    
+    const joystick_sync_t *data = (const joystick_sync_t *)in_data;
+    joystick_x = data->x;
+    joystick_y = data->y;
+}
+#endif
+
+// ジョイスティックの方向から Hat Switch の状態を取得
+uint8_t get_joystick_hat_direction(int16_t x, int16_t y) {
+    // デッドゾーンチェック
+    const int16_t deadzone = JOYSTICK_KEY_TH;
+    
+    if (abs(x) <= deadzone && abs(y) <= deadzone) {
+        return HAT_CENTER;
+    }
+    
+    // 8方向の判定
+    if (y < -deadzone) { // 上方向
+        if (x < -deadzone) return HAT_UP_LEFT;
+        else if (x > deadzone) return HAT_UP_RIGHT;
+        else return HAT_UP;
+    } else if (y > deadzone) { // 下方向
+        if (x < -deadzone) return HAT_DOWN_LEFT;
+        else if (x > deadzone) return HAT_DOWN_RIGHT;
+        else return HAT_DOWN;
+    } else { // 中央(y)
+        if (x < -deadzone) return HAT_LEFT;
+        else if (x > deadzone) return HAT_RIGHT;
+        else return HAT_CENTER;
+    }
+}
+
 // matrix_scan_user関数でジョイスティックの値を読み取る
 void matrix_scan_user(void) {
     static uint32_t joystick_timer = 0;
-    static bool js_shift_active = false;    // 上方向（Shift）
-    static bool js_ctrl_active = false;     // 左方向（Ctrl）
-    static bool js_opt_active = false;      // 右方向（Option/Alt）
-    static bool js_cmd_active = false;      // 下方向（Cmd/Win）
     
-    // 20msごとにジョイスティックの値を読み取る（より高速に）
+    // 20msごとにジョイスティックの値を読み取る
     if (timer_elapsed32(joystick_timer) > 20) {
         joystick_timer = timer_read32();
-        read_joystick_values();
         
-        // ジョイスティックキーモードがアクティブな場合、ジョイスティックの値に応じてキーを押す
-        if (joystick_key_mode_active) {
-            // デッドゾーンを大きくする
-            const int16_t deadzone = JOYSTICK_KEY_TH;
+        // 左手側のジョイスティック値を読み取る
+        if (is_keyboard_left()) {
+            read_joystick_values();
             
-            // 左方向: Ctrlキー
-            bool new_ctrl_active = joystick_x < -deadzone;
-            if (new_ctrl_active != js_ctrl_active) {
-                joystick_key_action(KC_LCTL, new_ctrl_active);
-                js_ctrl_active = new_ctrl_active;
+            #ifdef SPLIT_KEYBOARD
+            // スレーブの場合はマスターに送信
+            if (!is_keyboard_master()) {
+                joystick_slave_send_data();
+                return; // スレーブではここで処理を終了
             }
+            #endif
+        }
+        
+        // ジョイスティックキーモードがアクティブな場合
+        if (joystick_key_mode_active && is_keyboard_master()) {
+            // Hat Switch方式でキー状態を管理
+            uint8_t hat_state = get_joystick_hat_direction(joystick_x, joystick_y);
+            process_joystick_hat(hat_state);
             
-            // 右方向: Optionキー
-            bool new_opt_active = joystick_x > deadzone;
-            if (new_opt_active != js_opt_active) {
-                joystick_key_action(KC_LALT, new_opt_active);
-                js_opt_active = new_opt_active;
-            }
-            
-            // 下方向: Cmdキー
-            bool new_cmd_active = joystick_y > deadzone;
-            if (new_cmd_active != js_cmd_active) {
-                joystick_key_action(KC_LGUI, new_cmd_active);
-                js_cmd_active = new_cmd_active;
-            }
-            
-            // 上方向: Shiftキー + 速度調整
-            bool new_shift_active = joystick_y < -deadzone;
-            if (new_shift_active != js_shift_active) {
-                joystick_key_action(KC_LSFT, new_shift_active);
-                js_shift_active = new_shift_active;
-            }
-            
-            // 上方向の入力があった場合、トラックボールの速度倍率を更新
-            if (joystick_y < -deadzone) {
-                // ジョイスティックの上方向の入力値に基づいて速度倍率を計算
+            // 下方向の入力があった場合、トラックボールの速度倍率を更新
+            if (joystick_y > JOYSTICK_DEADZONE) {
                 update_trackball_speed_multiplier(joystick_y);
             } else {
-                // 上方向の入力がない場合は倍率を1.0に戻す
                 current_speed_multiplier = 1.0;
             }
         }
