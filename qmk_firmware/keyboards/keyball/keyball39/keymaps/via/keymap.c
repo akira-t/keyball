@@ -231,6 +231,8 @@ report_mouse_t pointing_device_task_kb(report_mouse_t mouse_report) {
     if (current_speed_multiplier > 1.0) {
         mouse_report.x = (int8_t)((float)mouse_report.x * current_speed_multiplier);
         mouse_report.y = (int8_t)((float)mouse_report.y * current_speed_multiplier);
+        mouse_report.h = (int8_t)((float)mouse_report.h * current_speed_multiplier);
+        mouse_report.v = (int8_t)((float)mouse_report.v * current_speed_multiplier);
     }
     
     // 元の処理に進む
