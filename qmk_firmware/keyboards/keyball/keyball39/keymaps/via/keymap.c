@@ -333,27 +333,31 @@ void joystick_key_action(uint8_t keycode, bool pressed) {
 float current_speed_multiplier = 1.0; // staticを削除してグローバル変数にする
 
 // ジョイスティックの下方向の値に基づいて速度倍率を更新する関数
-void update_trackball_speed_multiplier(int16_t joystick_down_value) {
-    // ジョイスティックの下方向の入力値をデッドゾーンからの相対値に変換
-    // joystick_down_value は正の値（下方向）なので、そのまま使用
-    int16_t value = joystick_down_value;
-    
+void update_trackball_speed_multiplier(int16_t joystick_y_value) {
+    // 縦方向のジョイスティック値を使用（Y軸）
+    int16_t value = joystick_y_value;
+
     // デッドゾーン以下の場合は倍率1.0（変更なし）
-    const int16_t deadzone = JOYSTICK_DEADZONE;
-    if (value <= deadzone) {
-        current_speed_multiplier = 1.0;
-        return;
-    }
+    // const int16_t deadzone = JOYSTICK_DEADZONE;
+    // if (value <= deadzone) {
+    //     current_speed_multiplier = 1.0;
+    //     return;
+    // }
+
+    // // 入力値を0.0～1.0の範囲に正規化
+    // // JOYSTICK_KEY_THを超えた分を、最大値（512程度）までの間で正規化
+    // float normalized_value = (float)(value - deadzone) / (512.0 - deadzone);
+
+    // // 値の範囲を制限（0.0～1.0）
+    // if (normalized_value > 1.0) normalized_value = 1.0;
+
+    // 正規化値を[-1, 1]の範囲から[0, 1]の範囲に変換
+    // （ここではY軸を使用し、下方向=正なので、そのまま0〜1に対応）
     
-    // 入力値を0.0～1.0の範囲に正規化
-    // JOYSTICK_KEY_THを超えた分を、最大値（512程度）までの間で正規化
-    float normalized_value = (float)(value - deadzone) / (512.0 - deadzone);
-    
-    // 値の範囲を制限（0.0～1.0）
-    if (normalized_value > 1.0) normalized_value = 1.0;
-    
-    // 1.0～5.0の範囲で倍率を計算（ここでは線形に変化）
-    current_speed_multiplier = 1.0 + normalized_value * 4.0; // 最大5倍
+    // 指数関数的な変化を実現（5^x で計算）
+    // x=0のとき5^0=1、x=1のとき5^1=5
+    // pow関数は比較的重いので、近似計算を使用しても良い
+    current_speed_multiplier = powf(5.0f, -value);
 }
 
 // pointing_device_task関数の前処理として速度調整関数を定義
