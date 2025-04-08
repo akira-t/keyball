@@ -338,7 +338,8 @@ void update_trackball_speed_multiplier(int16_t joystick_y_value) {
     int16_t value = joystick_y_value;
 
     // デッドゾーン以下の場合は倍率1.0（変更なし）
-    // const int16_t deadzone = JOYSTICK_DEADZONE;
+    const int16_t deadzone = 0;
+    // TODO deadzoneが非ゼロかつvalueが負の場合、deadzone*=-1
     // if (value <= deadzone) {
     //     current_speed_multiplier = 1.0;
     //     return;
@@ -346,7 +347,7 @@ void update_trackball_speed_multiplier(int16_t joystick_y_value) {
 
     // // 入力値を0.0～1.0の範囲に正規化
     // // JOYSTICK_KEY_THを超えた分を、最大値（512程度）までの間で正規化
-    // float normalized_value = (float)(value - deadzone) / (512.0 - deadzone);
+    float normalized_value = (float)(value - deadzone) / (512.0 - deadzone);
 
     // // 値の範囲を制限（0.0～1.0）
     // if (normalized_value > 1.0) normalized_value = 1.0;
@@ -357,18 +358,16 @@ void update_trackball_speed_multiplier(int16_t joystick_y_value) {
     // 指数関数的な変化を実現（5^x で計算）
     // x=0のとき5^0=1、x=1のとき5^1=5
     // pow関数は比較的重いので、近似計算を使用しても良い
-    current_speed_multiplier = powf(5.0f, -value);
+    current_speed_multiplier = powf(5.0f, -normalized_value);
 }
 
 // pointing_device_task関数の前処理として速度調整関数を定義
 report_mouse_t pointing_device_task_kb(report_mouse_t mouse_report) {
     // ジョイスティックの上方向の入力があった場合のみ倍率を適用
-    if (current_speed_multiplier > 1.0) {
         mouse_report.x = (int8_t)((float)mouse_report.x * current_speed_multiplier);
         mouse_report.y = (int8_t)((float)mouse_report.y * current_speed_multiplier);
         mouse_report.h = (int8_t)((float)mouse_report.h * current_speed_multiplier);
         mouse_report.v = (int8_t)((float)mouse_report.v * current_speed_multiplier);
-    }
     
     // 元の処理に進む
     return pointing_device_task_user(mouse_report);
@@ -452,12 +451,8 @@ void matrix_scan_user(void) {
             uint8_t hat_state = get_joystick_hat_direction(joystick_x, joystick_y);
             process_joystick_hat(hat_state);
             
-            // 下方向の入力があった場合、トラックボールの速度倍率を更新
-            if (joystick_y > JOYSTICK_DEADZONE) {
-                update_trackball_speed_multiplier(joystick_y);
-            } else {
-                current_speed_multiplier = 1.0;
-            }
+            // トラックボールの速度倍率を更新
+            update_trackball_speed_multiplier(joystick_y);
         }
     }
 }
